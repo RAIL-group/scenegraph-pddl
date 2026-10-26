@@ -8,6 +8,7 @@ from shapely import geometry
 from scenegraph_pddl import config, grid
 
 GRID_RESOLUTION = 0.05  # meters per occupancy-grid cell
+TOP_DOWN_MARGIN = 0.5  # meters of slack around the rooms in the top-down view
 MAX_OBJECTS_PER_CONTAINER = 7
 IGNORED_ASSETS = ['BaseballBat', 'BasketBall', 'Boots', 'DeskLamp',
                   'TennisRacket', 'Faucet', 'HousePlant', 'Dumbbell',
@@ -45,6 +46,7 @@ class ProcTHORHouse:
         occupancy_grid: 0 for cells the agent can reach, 1 otherwise.
         robot_position: grid cell of the agent's start position.
         grid_to_world: maps each free grid cell to its AI2-THOR position.
+        top_down_image, top_down_extent: set by render_top_down().
         controller: the AI2-THOR controller; call close() once done.
     """
 
@@ -64,10 +66,47 @@ class ProcTHORHouse:
 
         agent_position = self.record['metadata']['agent']['position']
         self.robot_position = self.to_grid((agent_position['x'], agent_position['z']))
+        self.top_down_image = None
+        self.top_down_extent = None
 
     def close(self):
         """Stop the AI2-THOR simulator."""
         self.controller.stop()
+
+    def render_top_down(self):
+        """Render an orthographic top-down image of the house (needs the simulator).
+
+        Sets top_down_image, with rows running along +z, and top_down_extent,
+        its (left, right, bottom, top) edges in grid cells for imshow, so it
+        lines up with the occupancy grid plotted as occupancy_grid.T.
+        """
+        # Frame the room floor polygons, square because the frame is square
+        corners = [(vertex['x'], vertex['z']) for room in self.rooms for vertex in room['floorPolygon']]
+        xs, zs = zip(*corners)
+        center_x, center_z = (min(xs) + max(xs)) / 2, (min(zs) + max(zs)) / 2
+        half = max(max(xs) - min(xs), max(zs) - min(zs)) / 2 + TOP_DOWN_MARGIN
+
+        event = self.controller.step(action='GetMapViewCameraProperties', raise_for_failure=True)
+        pose = event.metadata['actionReturn']
+        bounds = event.metadata['sceneBounds']['size']
+        event = self.controller.step(
+            action='AddThirdPartyCamera',
+            position={'x': center_x, 'y': pose['position']['y'] + 1.1 * max(bounds['x'], bounds['z']),
+                      'z': center_z},
+            rotation={'x': 90, 'y': 0, 'z': 0},  # straight down, +x right and +z up
+            fieldOfView=50, orthographic=True, orthographicSize=half,
+            farClippingPlane=50, skyboxColor='white', raise_for_failure=True)
+        self.top_down_image = event.third_party_camera_frames[-1][::-1]
+
+        def to_cells(x, z):
+            # Cell centres sit at integer coordinates, so edges are half a cell out
+            return ((x - self.grid_offset[0]) / self.grid_resolution - 0.5,
+                    (z - self.grid_offset[1]) / self.grid_resolution - 0.5)
+        left, bottom = to_cells(center_x - half, center_z - half)
+        right, top = to_cells(center_x + half, center_z + half)
+        # imshow with origin='upper': the first row (smallest z) goes at the top
+        self.top_down_extent = (left, right, top, bottom)
+        return self.top_down_image
 
     def to_grid(self, point):
         """Grid cell of a world (x, z) point."""

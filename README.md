@@ -15,9 +15,9 @@
 
 #### Example: put an apple in the fridge
 
-In ProcTHOR house 3, the robot starts at `base`, finds the apple on the kitchen countertop and puts it in the fridge.
+In ProcTHOR house 3, the robot starts at `base`, walks to the kitchen countertop for the apple, carries it to the fridge and returns. Left: the house from above. Middle: the occupancy grid with the robot's route, shaded light to dark by the plan cost spent so far. Right: the plan.
 
-<img src="assets/scene-graph-seed-3.png" width="640" alt="Scene graph of ProcTHOR house 3: the apartment links to four rooms, each room to its containers, and each container to the objects inside it.">
+<img src="assets/plan-seed-3.png" width="900" alt="ProcTHOR house 3 from above, beside its occupancy grid with the robot's route from base to the countertop, then to the fridge and back to base, shaded by cost, and the five plan actions.">
 
 ```bash
 make pipeline SEED=3 GOALS="--goal apple fridge"
@@ -99,6 +99,7 @@ Each run writes to `data/pipeline/seed_<N>/`:
 | `problem.pddl` | Generated problem |
 | `plan.txt` | Fast Downward plan, ending with `; cost = ...` |
 | `fast_downward.log` | Full planner output |
+| `plan.png` | The plan drawn on the house, as in the example above |
 
 #### Planners
 
@@ -164,6 +165,10 @@ The domain, [`pddl/domain.pddl`](./src/scenegraph_pddl/pddl/domain.pddl):
 - `ensure_installed()` clones `aibasel/downward` at `release-24.06.1` into `./third_party/fast-downward` and runs its `build.py`, unless it's already built.
 - `solve(domain, problem, planner=...)` runs `fast-downward.py` and returns the plan as a list of action tuples plus its total cost, or `(None, None)` if there is no plan.
 
+[`plotting.py`](./src/scenegraph_pddl/plotting.py) draws `plan.png`, in the style of [`railroad`](https://github.com/RAIL-group/railroad)'s ProcTHOR plots:
+- `house.render_top_down()` renders an orthographic top-down view while the simulator is still running, framed in grid coordinates so it lines up with the occupancy grid.
+- `plan_route(house, graph, actions)` replays the plan: each move follows the same shortest path its `MotionCost` was measured on, and pick and place add their cost of 10.
+
 ## Architecture
 
 ```
@@ -175,6 +180,7 @@ The domain, [`pddl/domain.pddl`](./src/scenegraph_pddl/pddl/domain.pddl):
 │   ├── house.py              ProcTHORHouse: load a house, build its occupancy grid
 │   ├── grid.py               shortest paths over the occupancy grid
 │   ├── scene_graph.py        build, featurise, draw and save the scene graph
+│   ├── plotting.py           draw the plan on the house (plan.png)
 │   ├── pddl/
 │   │   ├── domain.pddl       pick/place/move domain
 │   │   ├── problem.py        scene graph -> problem.pddl
@@ -197,6 +203,7 @@ make flake8   # style check
 
 - `tests/test_grid.py`: shortest paths on small grids.
 - `tests/test_problem.py`: problem generation and solving on a hand-made scene graph; the solve test is skipped until Fast Downward is built.
+- `tests/test_plotting.py`: route replay and plotting on a hand-made house.
 - `tests/test_pipeline.py`: the full pipeline on ProcTHOR house 0; skipped until `make download` has been run.
 
 ## Troubleshooting

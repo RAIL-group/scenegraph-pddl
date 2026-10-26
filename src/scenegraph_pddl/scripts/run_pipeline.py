@@ -3,8 +3,8 @@
     uv run python -m scenegraph_pddl.scripts.run_pipeline --seed 3 --goal apple fridge
     uv run python -m scenegraph_pddl.scripts.run_pipeline --seed 7036 --num-random-goals 3 --planner ff-wastar2
 
-Writes scene_graph.json, scene_graph.png, domain.pddl, problem.pddl, plan.txt
-and fast_downward.log to <output-dir>/seed_<seed>/.
+Writes scene_graph.json, scene_graph.png, domain.pddl, problem.pddl, plan.txt,
+fast_downward.log and plan.png to <output-dir>/seed_<seed>/.
 """
 import argparse
 import os
@@ -13,13 +13,15 @@ import shutil
 from scenegraph_pddl import config
 from scenegraph_pddl.house import ProcTHORHouse
 from scenegraph_pddl.pddl import fast_downward, problem
+from scenegraph_pddl.plotting import save_plan_plot
 from scenegraph_pddl.scene_graph import add_node_features, build_scene_graph, save_scene_graph
 
 
 def load_scene(seed):
     """Load house `seed` and build its scene graph (with node features)."""
     house = ProcTHORHouse(seed)
-    # The simulator is only needed to build the occupancy grid
+    # The simulator is only needed for the occupancy grid and the top-down view
+    house.render_top_down()
     house.close()
     graph = add_node_features(build_scene_graph(house))
     return house, graph
@@ -57,6 +59,7 @@ def run_pipeline(seed, goals=None, num_random_goals=1,
         print(f'Plan ({len(actions)} steps, cost {cost}):')
         for action in actions:
             print('  ' + ' '.join(action))
+        save_plan_plot(house, graph, actions, goals, cost, os.path.join(output_dir, 'plan.png'))
     return graph, goals, actions, cost
 
 

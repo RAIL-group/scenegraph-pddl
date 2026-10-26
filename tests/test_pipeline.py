@@ -20,6 +20,7 @@ def scene():
 def test_house(scene):
     house, _, _ = scene
     assert house.occupancy_grid[house.robot_position] == 0
+    assert house.top_down_image.shape[0] == house.top_down_image.shape[1]
     for container in house.containers:
         assert house.occupancy_grid[container['position']] == 0
         assert 0 < len(container['children']) <= 7
