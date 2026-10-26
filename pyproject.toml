@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "procgraph"
+version = "1.0.0"
+description = "ProcTHOR house -> scene graph -> PDDL problem -> Fast Downward plan."
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+license = { text = "MIT" }
+authors = [
+    { name = "Raihan Islam Arnob", email = "rarnob@gmu.edu" },
+    { name = "Ridwan Hossain" },
+]
+dependencies = [
+    "ai2thor>=5",
+    "matplotlib",
+    "networkx",
+    "numpy",
+    "pillow",
+    "prior",
+    "scikit-image",
+    "sentence-transformers",
+    "shapely>=2",
+]
+
+[dependency-groups]
+dev = [
+    "flake8",
+    "pytest",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/procgraph"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

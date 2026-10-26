@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.pytest_cache/
+
+# Downloaded data, pipeline outputs and the Fast Downward build
+/data/
+/third_party/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
