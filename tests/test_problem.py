@@ -3,8 +3,8 @@ import os
 
 import pytest
 
-from procgraph import config
-from procgraph.pddl import fast_downward, problem
+from scenegraph_pddl import config
+from scenegraph_pddl.pddl import fast_downward, problem
 
 
 @pytest.fixture

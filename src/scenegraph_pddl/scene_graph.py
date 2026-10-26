@@ -20,8 +20,8 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 from PIL import Image
 
-from procgraph import config
-from procgraph.house import asset_name
+from scenegraph_pddl import config
+from scenegraph_pddl.house import asset_name
 
 NODE_TYPES = ('apartment', 'room', 'container', 'object')
 NODE_COLORS = {'apartment': 'red', 'room': 'blue', 'container': 'green', 'object': 'orange'}

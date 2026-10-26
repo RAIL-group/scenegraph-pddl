@@ -1,7 +1,7 @@
 """ProcTHOR house -> scene graph -> problem.pddl -> Fast Downward plan.
 
-    uv run python -m procgraph.scripts.run_pipeline --seed 3 --goal apple fridge
-    uv run python -m procgraph.scripts.run_pipeline --seed 7036 --num-random-goals 3 --planner ff-wastar2
+    uv run python -m scenegraph_pddl.scripts.run_pipeline --seed 3 --goal apple fridge
+    uv run python -m scenegraph_pddl.scripts.run_pipeline --seed 7036 --num-random-goals 3 --planner ff-wastar2
 
 Writes scene_graph.json, scene_graph.png, domain.pddl, problem.pddl, plan.txt
 and fast_downward.log to <output-dir>/seed_<seed>/.
@@ -10,10 +10,10 @@ import argparse
 import os
 import shutil
 
-from procgraph import config
-from procgraph.house import ProcTHORHouse
-from procgraph.pddl import fast_downward, problem
-from procgraph.scene_graph import add_node_features, build_scene_graph, save_scene_graph
+from scenegraph_pddl import config
+from scenegraph_pddl.house import ProcTHORHouse
+from scenegraph_pddl.pddl import fast_downward, problem
+from scenegraph_pddl.scene_graph import add_node_features, build_scene_graph, save_scene_graph
 
 
 def load_scene(seed):

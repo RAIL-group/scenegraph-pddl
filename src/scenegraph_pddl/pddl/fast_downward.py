@@ -9,7 +9,7 @@ import re
 import subprocess
 import sys
 
-from procgraph import config
+from scenegraph_pddl import config
 
 REPOSITORY = 'https://github.com/aibasel/downward.git'
 VERSION = 'release-24.06.1'

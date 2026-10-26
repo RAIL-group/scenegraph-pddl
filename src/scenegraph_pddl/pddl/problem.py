@@ -11,7 +11,7 @@ import os
 import random
 import re
 
-from procgraph import grid
+from scenegraph_pddl import grid
 
 DOMAIN_PATH = os.path.join(os.path.dirname(__file__), 'domain.pddl')
 

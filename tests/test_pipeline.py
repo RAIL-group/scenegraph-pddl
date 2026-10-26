@@ -3,8 +3,8 @@ import os
 
 import pytest
 
-from procgraph import config
-from procgraph.pddl import fast_downward, problem
+from scenegraph_pddl import config
+from scenegraph_pddl.pddl import fast_downward, problem
 
 pytestmark = pytest.mark.skipif(not os.path.exists(config.PROCTHOR_DATA_PATH),
                                 reason='ProcTHOR data not downloaded (make download)')
@@ -12,7 +12,7 @@ pytestmark = pytest.mark.skipif(not os.path.exists(config.PROCTHOR_DATA_PATH),
 
 @pytest.fixture(scope='module')
 def scene():
-    from procgraph.scripts.run_pipeline import load_scene
+    from scenegraph_pddl.scripts.run_pipeline import load_scene
     house, graph = load_scene(seed=0)
     return house, graph, problem.compute_motion_costs(house, graph)
 

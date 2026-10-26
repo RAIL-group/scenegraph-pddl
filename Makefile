@@ -31,15 +31,15 @@ install:
 .PHONY: download
 download:
 	@command -v git-lfs >/dev/null || { echo "git-lfs is required to download ProcTHOR-10k: brew install git-lfs (macOS) or sudo apt-get install git-lfs (Linux)"; exit 1; }
-	@$(PYTHON) -m procgraph.scripts.download_data
+	@$(PYTHON) -m scenegraph_pddl.scripts.download_data
 
 .PHONY: fast-downward
 fast-downward:
-	@$(PYTHON) -c "from procgraph.pddl import fast_downward; fast_downward.ensure_installed()"
+	@$(PYTHON) -c "from scenegraph_pddl.pddl import fast_downward; fast_downward.ensure_installed()"
 
 .PHONY: pipeline
 pipeline:
-	@$(PYTHON) -m procgraph.scripts.run_pipeline --seed $(SEED) --planner $(PLANNER) $(GOALS)
+	@$(PYTHON) -m scenegraph_pddl.scripts.run_pipeline --seed $(SEED) --planner $(PLANNER) $(GOALS)
 
 .PHONY: test
 test:

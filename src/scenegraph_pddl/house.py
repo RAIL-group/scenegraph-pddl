@@ -5,7 +5,7 @@ import numpy as np
 from ai2thor.controller import Controller
 from shapely import geometry
 
-from procgraph import config, grid
+from scenegraph_pddl import config, grid
 
 GRID_RESOLUTION = 0.05  # meters per occupancy-grid cell
 MAX_OBJECTS_PER_CONTAINER = 7

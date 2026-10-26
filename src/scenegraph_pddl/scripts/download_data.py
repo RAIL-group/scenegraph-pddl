@@ -1,11 +1,11 @@
 """Download the ProcTHOR-10k houses and the sentence-BERT model into data/.
 
-    uv run python -m procgraph.scripts.download_data
+    uv run python -m scenegraph_pddl.scripts.download_data
 """
 import json
 import os
 
-from procgraph import config
+from scenegraph_pddl import config
 
 
 def download_procthor_houses(path=config.PROCTHOR_DATA_PATH):

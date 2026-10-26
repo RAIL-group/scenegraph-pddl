@@ -1,80 +1,27 @@
-# ProcTHOR → Scene Graph → PDDL → Fast Downward
+# `scenegraph-pddl` : Task planning in ProcTHOR houses with PDDL and Fast Downward
 
-This project turns a [ProcTHOR-10k](https://procthor.allenai.org/) house into a task plan in three steps:
+**ProcTHOR house → scene graph → PDDL problem → Fast Downward plan**
 
-1. **Scene graph.** Load a house in [AI2-THOR](https://ai2thor.allenai.org/) and build a scene graph from it: apartment → rooms → containers → objects. The loader also builds an occupancy grid from the simulator's reachable positions.
-2. **Problem file.** Write a `problem.pddl` from the scene graph for a pick-and-place `domain.pddl`. Moves cost their real walking distance over the occupancy grid.
-3. **Plan.** Solve the task with the [Fast Downward](https://www.fast-downward.org) planner, which is downloaded and built locally on first use.
+`scenegraph-pddl` is a symbolic task planning pipeline for household robots. It loads a [ProcTHOR-10k](https://procthor.allenai.org/) house in [AI2-THOR](https://ai2thor.allenai.org/), builds a scene graph from it, writes a pick-and-place PDDL problem whose move costs are real walking distances, and solves it with the [Fast Downward](https://www.fast-downward.org) planner.
 
-Everything runs natively with the [uv](https://docs.astral.sh/uv/) package manager.
+*Developed by the [Robot Anticipatory Intelligence & Learning (RAIL) Group @ GMU](https://people.cs.gmu.edu/~gjstein/), led by Prof. Gregory J. Stein.*
 
----
+#### Key properties
+- **Scene graphs from ProcTHOR**: any of the 10,000 ProcTHOR-10k houses becomes a graph of apartment → rooms → containers → objects.
+- **Real move costs**: moves cost their shortest walking distance over an occupancy grid built from the simulator's reachable positions.
+- **Readable goals**: ask for `apple fridge` and the goal becomes `(In apple_44 fridge_11)`.
+- **Fast Downward included**: the planner is cloned and built locally the first time it's needed.
+- **Learning-ready nodes**: every node carries a sentence-BERT embedding of its name plus a one-hot node type.
 
-## 1. Requirements
+#### Example: put an apple in the fridge
 
-| | |
-|---|---|
-| OS | macOS (tested on Apple Silicon) or Linux |
-| Tools | [uv](https://docs.astral.sh/uv/), `git`, [`git-lfs`](https://git-lfs.com), `make`, CMake ≥ 3.16, a C++20 compiler |
-| Disk | About 5 GB: Python environment 1.1 GB plus 1 GB uv cache, AI2-THOR simulator 1 GB (`~/.ai2thor`), data 750 MB plus 550 MB download caches (`~/.prior`, `~/.cache/huggingface`), Fast Downward 240 MB |
-| Network | Needed on first run, for the downloads above |
+In ProcTHOR house 3, the robot starts at `base`, finds the apple on the kitchen countertop and puts it in the fridge.
 
-Install the tools:
-
-```bash
-# macOS
-xcode-select --install                # C++ compiler, git, make
-brew install cmake uv git-lfs
-softwareupdate --install-rosetta      # Apple Silicon only: the AI2-THOR simulator is an Intel build
-
-# Linux (Debian/Ubuntu)
-sudo apt-get install build-essential cmake git git-lfs
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-uv installs the right Python (3.12, pinned in `.python-version`) by itself; you don't need a system Python.
-
-On Linux, AI2-THOR needs an X display. On a headless machine, prefix commands with `xvfb-run -a`. Only macOS has been tested.
-
----
-
-## 2. Setup from scratch
-
-Run every command from the repository root. The code finds `./data` and `./third_party` relative to the working directory.
-
-```bash
-git clone git@github.com:RAIL-group/symbolic-planning.git
-cd symbolic-planning
-
-# 1. Create .venv and install all Python dependencies (about 1 minute on first install)
-uv sync
-
-# 2. Download the ProcTHOR-10k houses and the sentence-BERT model into ./data (about 1 minute)
-make download
-
-# 3. Clone and build Fast Downward (release-24.06.1) into ./third_party (1–3 minutes)
-make fast-downward
-```
-
-`make download` writes:
-- `data/procthor-data/data.jsonl`: the 10,000 ProcTHOR-10k training houses, one JSON per line, fetched with [`prior`](https://github.com/allenai/prior).
-- `data/sentence_transformers/`: the `bert-base-nli-stsb-mean-tokens` model, used to embed node names in the scene graph.
-
-Step 3 is optional: the pipeline builds Fast Downward automatically the first time it needs it. To use an existing checkout instead, set `FAST_DOWNWARD_DIR=/path/to/downward`.
-
-The first time a house is loaded, AI2-THOR downloads its simulator build (a 775 MB zip, 1 GB unpacked) to `~/.ai2thor`, so the first pipeline run takes about a minute longer.
-
----
-
-## 3. Run one example
-
-Put an apple in the fridge in house 3:
+<img src="assets/scene-graph-seed-3.png" width="640" alt="Scene graph of ProcTHOR house 3: the apartment links to four rooms, each room to its containers, and each container to the objects inside it.">
 
 ```bash
 make pipeline SEED=3 GOALS="--goal apple fridge"
 ```
-
-Expected output (noise trimmed):
 
 ```
 Scene graph: 46 nodes, 13 containers, 28 objects
@@ -87,27 +34,51 @@ Plan (5 steps, cost 341.0):
   move robot1 fridge_11 base
 ```
 
-This takes about 15 seconds, most of it starting AI2-THOR and embedding node names. The cost is 10 (pick) + 10 (place) + 321 for the three moves, measured in 0.05 m grid cells.
+The cost is 10 (pick) + 10 (place) + 321 for the three moves, measured in 0.05 m grid cells. The run takes about 15 seconds, most of it starting AI2-THOR and embedding node names.
 
-Results are written to `data/pipeline/seed_3/`:
+## Quickstart via the [`uv`](https://docs.astral.sh/uv/) package manager
 
-| File | Contents |
+```bash
+git clone git@github.com:RAIL-group/scenegraph-pddl.git
+cd scenegraph-pddl
+uv sync              # Python 3.12 environment and dependencies (~1 min)
+make download        # ProcTHOR-10k houses + sentence-BERT model into ./data (~1 min)
+make pipeline SEED=3 GOALS="--goal apple fridge"
+```
+
+Run every command from the repository root: the code finds `./data` and `./third_party` relative to the working directory.
+
+The first run also builds Fast Downward into `./third_party` (1–3 min; or run `make fast-downward` ahead of time) and downloads the AI2-THOR simulator to `~/.ai2thor` (775 MB). To use an existing Fast Downward checkout, set `FAST_DOWNWARD_DIR=/path/to/downward`.
+
+#### Requirements
+
+| | |
 |---|---|
-| `scene_graph.json` | Nodes (name, type, grid position), edges, container and object indices |
-| `scene_graph.png` | Picture of the graph |
-| `domain.pddl` | Copy of the domain used |
-| `problem.pddl` | Generated problem |
-| `plan.txt` | Fast Downward plan, ending with `; cost = ...` |
-| `fast_downward.log` | Full planner output |
+| OS | macOS (tested on Apple Silicon) or Linux |
+| Tools | [uv](https://docs.astral.sh/uv/), `git`, [`git-lfs`](https://git-lfs.com) (only for `make download`, to fetch ProcTHOR-10k), `make`, CMake ≥ 3.16, a C++20 compiler |
+| Disk | About 5 GB: Python environment 1.1 GB plus 1 GB uv cache, AI2-THOR simulator 1 GB (`~/.ai2thor`), data 750 MB plus 550 MB download caches (`~/.prior`, `~/.cache/huggingface`), Fast Downward 240 MB |
 
-More ways to run it:
+```bash
+# macOS
+xcode-select --install                # C++ compiler, git, make
+brew install cmake uv git-lfs
+softwareupdate --install-rosetta      # Apple Silicon only: the AI2-THOR simulator is an Intel build
+
+# Linux (Debian/Ubuntu)
+sudo apt-get install build-essential cmake git git-lfs
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+*Note:* uv installs Python 3.12 (pinned in `.python-version`) by itself. On Linux, AI2-THOR needs an X display; on a headless machine, prefix commands with `xvfb-run -a`. Only macOS has been tested.
+
+## Running the pipeline
 
 ```bash
 make pipeline SEED=0                                                 # one random goal
 make pipeline SEED=7 GOALS="--goal apple fridge --goal mug sink"     # several goals
 make pipeline SEED=7036 PLANNER=ff-wastar2                           # faster planner for big houses
-uv run python -m procgraph.scripts.run_pipeline --seed 7036 --num-random-goals 3 --planner ff-wastar2
-uv run python -m procgraph.scripts.run_pipeline --help
+uv run python -m scenegraph_pddl.scripts.run_pipeline --seed 7036 --num-random-goals 3 --planner ff-wastar2
+uv run python -m scenegraph_pddl.scripts.run_pipeline --help
 ```
 
 | Option | Make variable | Default | Meaning |
@@ -118,56 +89,16 @@ uv run python -m procgraph.scripts.run_pipeline --help
 | `--planner P` | `PLANNER` | `ff-astar` | See [Planners](#planners) |
 | `--output-dir DIR` | | `data/pipeline` | Where outputs go |
 
----
+Each run writes to `data/pipeline/seed_<N>/`:
 
-## 4. How it works
-
-### Step 1: loading the house and building the scene graph
-
-[`house.py`](./src/procgraph/house.py), `ProcTHORHouse(seed)`:
-
-1. Read line `seed` of `data.jsonl` and load that house into an AI2-THOR `Controller`.
-2. **Occupancy grid.** Ask the simulator for its reachable positions (`GetReachablePositions`, 0.05 m grid). Reachable cells are free (`0`); everything else is occupied (`1`). Each container, and the objects inside it, is moved to the nearest reachable cell; each room gets a position at the free cell nearest its centre. The robot's start cell is stored as `robot_position`.
-3. **Preprocessing:**
-   - drop containers named in `IGNORED_ASSETS` (lamps, paintings, TVs, …) and containers with no objects;
-   - give repeated container names a number;
-   - keep each object name only once across the house;
-   - keep at most 7 objects per container.
-
-The simulator is stopped once the grid is built (`house.close()` in `load_scene`). `house.path_cost(start, goal)` gives the shortest-path length between two grid cells.
-
-[`scene_graph.py`](./src/procgraph/scene_graph.py) then builds the scene graph:
-- `build_scene_graph(house)` makes nodes for the apartment, each room, each container and each object. Each node has an `id`, `name`, `type` and grid `position`. Edges run apartment–room, room–room (when a door connects them), room–container and container–object. The graph also lists the `containers` and `objects` node indices.
-- `add_node_features(graph)` gives each node a feature vector (`node_features`): the 768-dimensional sentence-BERT embedding of its name plus a one-hot node type.
-- `save_scene_graph(graph, dir)` writes `scene_graph.json` and a picture, `scene_graph.png`.
-
-### Step 2: the problem file
-
-[`pddl/problem.py`](./src/procgraph/pddl/problem.py):
-
-- **PDDL names.** Every graph node gets a unique name made of its generic name and node index, e.g. `fridge_19` or `apple_63`.
-- **Initial state:**
-  - `(Robot robot1)`, two hands `hand1` and `hand2`, both empty, and the robot `(At robot1 base)`;
-  - `(Object o)` and `(In o c)` for every object `o` in container `c`;
-  - `(ContainerUnsafe base)`, so nothing can be put down at the start position;
-  - `(Motion a b)` and `(= (MotionCost a b) d)` for every pair of locations (containers and `base`) with a path between them.
-- **Move costs.** `compute_motion_costs(house, graph)` runs Dijkstra ([`grid.py`](./src/procgraph/grid.py)) over the occupancy grid once from each location. The cost `d` is the shortest-path length in 0.05 m cells, rounded to an integer because Fast Downward only accepts integer costs.
-- **Goal:** `(In object container)` for each requested pair (`random_goals` picks random ones), plus the robot back `At base` with both hands empty.
-- **Goal names** can be PDDL names (`apple_63`) or generic names (`apple`); a generic name picks the first match. Unknown names raise an error listing the valid ones.
-
-The domain, [`pddl/domain.pddl`](./src/procgraph/pddl/domain.pddl), has three actions:
-
-| Action | Precondition | Cost |
-|---|---|---|
-| `move ?r ?s1 ?s2` | robot at `?s1`, `(Motion ?s1 ?s2)` | `MotionCost ?s1 ?s2` |
-| `pick ?r ?b ?s ?h` | robot at `?s`, `?b` in `?s`, hand `?h` empty | 10 |
-| `place ?r ?b ?s ?h` | robot at `?s`, holding `?b` in `?h`, `?s` not `ContainerUnsafe` | 10 |
-
-### Step 3: solving with Fast Downward
-
-[`pddl/fast_downward.py`](./src/procgraph/pddl/fast_downward.py):
-- `ensure_installed()` clones `aibasel/downward` at `release-24.06.1` into `./third_party/fast-downward` and runs its `build.py`, unless it's already built.
-- `solve(domain, problem, planner=...)` runs `fast-downward.py` and parses the plan file into a list of action tuples plus the total cost. It returns `(None, None)` if no plan is found.
+| File | Contents |
+|---|---|
+| `scene_graph.json` | Nodes (name, type, grid position), edges, container and object indices |
+| `scene_graph.png` | Picture of the graph |
+| `domain.pddl` | Copy of the domain used |
+| `problem.pddl` | Generated problem |
+| `plan.txt` | Fast Downward plan, ending with `; cost = ...` |
+| `fast_downward.log` | Full planner output |
 
 #### Planners
 
@@ -179,48 +110,67 @@ The domain, [`pddl/domain.pddl`](./src/procgraph/pddl/domain.pddl), has three ac
 
 The names follow pddlstream's planner names.
 
----
-
-## 5. Using it from Python
+## Quick Example: Python API
 
 ```python
-from procgraph.pddl import fast_downward, problem
-from procgraph.scripts.run_pipeline import load_scene
+from scenegraph_pddl.pddl import fast_downward, problem
+from scenegraph_pddl.scripts.run_pipeline import load_scene
 
-house, graph = load_scene(seed=3)                        # step 1
+house, graph = load_scene(seed=3)                        # 1. house -> scene graph
 motion_costs = problem.compute_motion_costs(house, graph)
 pddl = problem.build_problem(graph, [('apple', 'fridge')], motion_costs)
-with open('problem.pddl', 'w') as f:                     # step 2
+with open('problem.pddl', 'w') as f:                     # 2. scene graph -> problem.pddl
     f.write(pddl)
 actions, cost = fast_downward.solve(problem.DOMAIN_PATH, 'problem.pddl',
-                                    planner='ff-wastar2')  # step 3
+                                    planner='ff-wastar2')  # 3. problem.pddl -> plan
 ```
 
 `run_pipeline(seed, goals, ...)` in the same module does all three steps and writes the output files.
 
----
+## How it works
 
-## 6. Tests and checks
+#### 1. House → scene graph
 
-```bash
-make test     # pytest
-make flake8   # style check
-```
+[`house.py`](./src/scenegraph_pddl/house.py), `ProcTHORHouse(seed)`:
+- Reads line `seed` of `data.jsonl` and loads that house into an AI2-THOR `Controller`.
+- **Occupancy grid**: asks the simulator for its reachable positions (`GetReachablePositions`, 0.05 m grid). Reachable cells are free (`0`), everything else occupied (`1`). Each container, and the objects inside it, moves to the nearest reachable cell; each room gets the free cell nearest its centre; the robot's start cell is `robot_position`.
+- **Preprocessing**: drops containers in `IGNORED_ASSETS` (lamps, paintings, TVs, …) and empty containers, numbers repeated container names, keeps each object name once per house, and keeps at most 7 objects per container.
+- Stops the simulator once the grid is built. `house.path_cost(start, goal)` gives the shortest-path length between two cells.
 
-- `tests/test_grid.py`: shortest paths on small grids.
-- `tests/test_problem.py`: problem generation and solving on a hand-made scene graph. The solve test is skipped until Fast Downward is built.
-- `tests/test_pipeline.py`: the full pipeline on ProcTHOR house 0. Skipped until `make download` has been run.
+[`scene_graph.py`](./src/scenegraph_pddl/scene_graph.py):
+- `build_scene_graph(house)`: nodes for the apartment, rooms, containers and objects, each with an `id`, `name`, `type` and grid `position`. Edges run apartment–room, room–room (through a door), room–container and container–object.
+- `add_node_features(graph)`: 768-dimensional sentence-BERT embedding of the name plus a one-hot node type, in `node_features`.
+- `save_scene_graph(graph, dir)`: writes `scene_graph.json` and `scene_graph.png`.
 
----
+#### 2. Scene graph → problem.pddl
 
-## 7. Project layout
+[`pddl/problem.py`](./src/scenegraph_pddl/pddl/problem.py):
+- **Names**: every node gets a unique PDDL name from its generic name and index, e.g. `fridge_19`.
+- **Initial state**: `(Robot robot1)` `(At robot1 base)` with two empty hands `hand1` and `hand2`; `(Object o)` and `(In o c)` for every object; `(ContainerUnsafe base)` so nothing is put down at the start; `(Motion a b)` and `(= (MotionCost a b) d)` for every connected pair of locations.
+- **Move costs**: `compute_motion_costs(house, graph)` runs Dijkstra ([`grid.py`](./src/scenegraph_pddl/grid.py)) once from each location. Costs are rounded to integers because Fast Downward only accepts integer costs.
+- **Goal**: `(In object container)` for each requested pair, plus the robot back `At base` with both hands empty. Goal names can be PDDL names (`apple_63`) or generic names (`apple`, first match); unknown names raise an error listing the valid ones.
+
+The domain, [`pddl/domain.pddl`](./src/scenegraph_pddl/pddl/domain.pddl):
+
+| Action | Precondition | Cost |
+|---|---|---|
+| `move ?r ?s1 ?s2` | robot at `?s1`, `(Motion ?s1 ?s2)` | `MotionCost ?s1 ?s2` |
+| `pick ?r ?b ?s ?h` | robot at `?s`, `?b` in `?s`, hand `?h` empty | 10 |
+| `place ?r ?b ?s ?h` | robot at `?s`, holding `?b` in `?h`, `?s` not `ContainerUnsafe` | 10 |
+
+#### 3. problem.pddl → plan
+
+[`pddl/fast_downward.py`](./src/scenegraph_pddl/pddl/fast_downward.py):
+- `ensure_installed()` clones `aibasel/downward` at `release-24.06.1` into `./third_party/fast-downward` and runs its `build.py`, unless it's already built.
+- `solve(domain, problem, planner=...)` runs `fast-downward.py` and returns the plan as a list of action tuples plus its total cost, or `(None, None)` if there is no plan.
+
+## Architecture
 
 ```
 .
 ├── Makefile                  install / download / fast-downward / pipeline / test / flake8
 ├── pyproject.toml            package metadata and dependencies (Python 3.12)
-├── uv.lock                   locked dependency versions
-├── src/procgraph/
+├── src/scenegraph_pddl/
 │   ├── config.py             data, model and Fast Downward paths
 │   ├── house.py              ProcTHORHouse: load a house, build its occupancy grid
 │   ├── grid.py               shortest paths over the occupancy grid
@@ -232,26 +182,34 @@ make flake8   # style check
 │   └── scripts/
 │       ├── download_data.py  ProcTHOR-10k houses + sentence-BERT model
 │       └── run_pipeline.py   the three steps for one house
-├── tests/                    test_grid.py, test_problem.py, test_pipeline.py
+├── tests/
+├── assets/                   images for this README
 ├── data/                     (created) houses, sentence-BERT model, pipeline outputs
 └── third_party/              (created) Fast Downward checkout and build
 ```
 
----
+## Development
 
-## 8. Troubleshooting
+```bash
+make test     # pytest
+make flake8   # style check
+```
 
-- **`FileNotFoundError: ./data/procthor-data/data.jsonl`**: run `make download`, and run commands from the repository root.
+- `tests/test_grid.py`: shortest paths on small grids.
+- `tests/test_problem.py`: problem generation and solving on a hand-made scene graph; the solve test is skipped until Fast Downward is built.
+- `tests/test_pipeline.py`: the full pipeline on ProcTHOR house 0; skipped until `make download` has been run.
+
+## Troubleshooting
+
+- **`FileNotFoundError: ./data/procthor-data/data.jsonl`**: run `make download`, from the repository root.
 - **`make download` says `git-lfs is required`** (or Python fails with `No such file or directory: 'wget'`): the ProcTHOR-10k download uses Git LFS. Install it with `brew install git-lfs` or `sudo apt-get install git-lfs`.
 - **AI2-THOR hangs or crashes on start (macOS, Apple Silicon)**: install Rosetta 2 with `softwareupdate --install-rosetta`.
 - **AI2-THOR fails on Linux with a display error**: run under `xvfb-run -a`, or set `DISPLAY` to a running X server.
-- **Fast Downward build fails**: check that `cmake --version` is ≥ 3.16 and that a C++20 compiler is installed. Delete `third_party/fast-downward` and rerun `make fast-downward`.
+- **Fast Downward build fails**: check that `cmake --version` is ≥ 3.16 and a C++20 compiler is installed, then delete `third_party/fast-downward` and rerun `make fast-downward`.
 - **The planner runs for minutes**: use `PLANNER=ff-wastar2`.
-- **`ValueError: No object named ...`**: the goal name isn't in this house after preprocessing. The error message lists the valid names, and `scene_graph.json` has them too.
+- **`ValueError: No object named ...`**: that name isn't in this house after preprocessing. The error lists the valid names, and so does `scene_graph.json`.
 - **The editor can't find imports**: point it at `.venv/bin/python`.
-
----
 
 ## Credits
 
-The scene graph and ProcTHOR loading code come from the `procgraph` and `antplan` modules of [RAIL-core](https://github.com/RAIL-group) (Robotic Anticipatory Intelligence & Learning Group, George Mason University). Planning uses [Fast Downward](https://www.fast-downward.org) (GPL-3.0). See [LICENSE](./LICENSE).
+The scene graph and ProcTHOR loading code come from the `procgraph` and `antplan` modules of [RAIL-core](https://github.com/RAIL-group). Planning uses [Fast Downward](https://www.fast-downward.org) (GPL-3.0). See [LICENSE](./LICENSE).

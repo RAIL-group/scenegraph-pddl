@@ -3,7 +3,7 @@ import math
 import numpy as np
 import pytest
 
-from procgraph import grid
+from scenegraph_pddl import grid
 
 
 @pytest.fixture
