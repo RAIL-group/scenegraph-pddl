@@ -86,8 +86,8 @@ def render_plan(house, graph, actions, goals, cost):
 
 
 def save_plan_plot(house, graph, actions, goals, cost, path):
-    """Write the plan plot to path (e.g. plan.png)."""
-    render_plan(house, graph, actions, goals, cost).savefig(path, dpi=150, bbox_inches='tight')
+    """Write the plan plot to path (e.g. plan.png, or plan.jpg for a smaller file)."""
+    render_plan(house, graph, actions, goals, cost).savefig(path, dpi=300, bbox_inches='tight')
 
 
 def _draw_house(ax, house):

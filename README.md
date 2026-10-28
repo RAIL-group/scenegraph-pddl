@@ -17,7 +17,7 @@
 
 In ProcTHOR house 3, the robot starts at `base`, walks to the kitchen countertop for the apple, carries it to the fridge and returns. The route is drawn over the house seen from above, light to dark red by the plan cost spent so far; everywhere the robot cannot stand is darkened. Right: the plan's actions placed by the cost at which each starts, and the goal.
 
-<img src="assets/plan-seed-3.png" width="900" alt="ProcTHOR house 3 from above with the robot's route from base to the countertop, then to the fridge and back to base, shaded by cost, beside a cost scale with the five plan actions and the goal.">
+<img src="assets/plan-seed-3.jpg" width="900" alt="ProcTHOR house 3 from above with the robot's route from base to the countertop, then to the fridge and back to base, shaded by cost, beside a cost scale with the five plan actions and the goal.">
 
 ```bash
 make pipeline SEED=3 GOALS="--goal apple fridge"
@@ -34,7 +34,7 @@ Plan (5 steps, cost 341.0):
   move robot1 fridge_11 base
 ```
 
-The cost is 10 (pick) + 10 (place) + 321 for the three moves, measured in 0.05 m grid cells. The run takes about 15 seconds, most of it starting AI2-THOR and embedding node names.
+The cost is 10 (pick) + 10 (place) + 321 for the three moves, measured in 0.05 m grid cells. The run takes about 20 seconds, most of it starting AI2-THOR and embedding node names.
 
 ## Quickstart via the [`uv`](https://docs.astral.sh/uv/) package manager
 
@@ -48,7 +48,7 @@ make pipeline SEED=3 GOALS="--goal apple fridge"
 
 Run every command from the repository root: the code finds `./data` and `./third_party` relative to the working directory.
 
-The first run also builds Fast Downward into `./third_party` (1–3 min; or run `make fast-downward` ahead of time) and downloads the AI2-THOR simulator to `~/.ai2thor` (775 MB). To use an existing Fast Downward checkout, set `FAST_DOWNWARD_DIR=/path/to/downward`.
+The first run also builds Fast Downward into `./third_party` (1–3 min; or run `make fast-downward` ahead of time) and downloads the AI2-THOR simulator to `~/.ai2thor` (775 MB). To use an existing Fast Downward checkout, set `FAST_DOWNWARD_DIR=/path/to/downward`. The top-down view in `plan.png` is rendered at 2048×2048 pixels; set `PROCTHOR_TOP_DOWN_PX` to change that.
 
 #### Requirements
 
@@ -69,7 +69,7 @@ sudo apt-get install build-essential cmake git git-lfs
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-*Note:* uv installs Python 3.12 (pinned in `.python-version`) by itself. On Linux, AI2-THOR needs an X display; on a headless machine, prefix commands with `xvfb-run -a`. Only macOS has been tested.
+*Note:* uv installs Python 3.12 (pinned in `.python-version`) by itself. On Linux, AI2-THOR needs an X display; on a headless machine, prefix commands with `xvfb-run -a -s "-screen 0 2048x2048x24"` (the screen must fit the 2048-pixel render). Only macOS has been tested.
 
 ## Running the pipeline
 
@@ -212,7 +212,7 @@ make flake8   # style check
 - **`FileNotFoundError: ./data/procthor-data/data.jsonl`**: run `make download`, from the repository root.
 - **`make download` says `git-lfs is required`** (or Python fails with `No such file or directory: 'wget'`): the ProcTHOR-10k download uses Git LFS. Install it with `brew install git-lfs` or `sudo apt-get install git-lfs`.
 - **AI2-THOR hangs or crashes on start (macOS, Apple Silicon)**: install Rosetta 2 with `softwareupdate --install-rosetta`.
-- **AI2-THOR fails on Linux with a display error**: run under `xvfb-run -a`, or set `DISPLAY` to a running X server.
+- **AI2-THOR fails on Linux with a display error**: run under `xvfb-run -a -s "-screen 0 2048x2048x24"`, or set `DISPLAY` to a running X server at least 2048×2048 pixels. On a smaller screen, set `PROCTHOR_TOP_DOWN_PX` to fit it.
 - **Fast Downward build fails**: check that `cmake --version` is ≥ 3.16 and a C++20 compiler is installed, then delete `third_party/fast-downward` and rerun `make fast-downward`.
 - **The planner runs for minutes**: use `PLANNER=ff-wastar2`.
 - **`ValueError: No object named ...`**: that name isn't in this house after preprocessing. The error lists the valid names, and so does `scene_graph.json`.

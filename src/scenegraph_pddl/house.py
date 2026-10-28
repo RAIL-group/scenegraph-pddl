@@ -1,5 +1,6 @@
 """Load a ProcTHOR-10k house into AI2-THOR and build its occupancy grid."""
 import json
+import os
 
 import numpy as np
 from ai2thor.controller import Controller
@@ -9,6 +10,10 @@ from scenegraph_pddl import config, grid
 
 GRID_RESOLUTION = 0.05  # meters per occupancy-grid cell
 TOP_DOWN_MARGIN = 0.5  # meters of slack around the rooms in the top-down view
+# Square size, in pixels, of the simulator's frames and so of the top-down view.
+# As in railroad: the plot is saved at 300 dpi, which puts about 2000 pixels
+# across the map, so a smaller view is upscaled and looks blurry.
+TOP_DOWN_RENDER_PX = int(os.environ.get('PROCTHOR_TOP_DOWN_PX', 2048))
 MAX_OBJECTS_PER_CONTAINER = 7
 IGNORED_ASSETS = ['BaseballBat', 'BasketBall', 'Boots', 'DeskLamp',
                   'TennisRacket', 'Faucet', 'HousePlant', 'Dumbbell',
@@ -59,7 +64,7 @@ class ProcTHORHouse:
         self.containers = self.record['objects']
         self.controller = Controller(scene=self.record,
                                      gridSize=self.grid_resolution,
-                                     width=480, height=480)
+                                     width=TOP_DOWN_RENDER_PX, height=TOP_DOWN_RENDER_PX)
         self.occupancy_grid = self._build_occupancy_grid()
         if preprocess:
             self.containers = self._preprocess_containers(self.containers)
