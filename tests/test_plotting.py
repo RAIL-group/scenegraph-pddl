@@ -12,7 +12,7 @@ from scenegraph_pddl.pddl import problem
 def house():
     occupancy_grid = np.zeros((10, 10), dtype=int)
     occupancy_grid[4, 2:8] = 1  # a wall the route must go around
-    return SimpleNamespace(occupancy_grid=occupancy_grid, robot_position=(1, 5),
+    return SimpleNamespace(occupancy_grid=occupancy_grid, robot_position=(1, 5), grid_resolution=0.05,
                            top_down_image=None, top_down_extent=None)
 
 
@@ -41,9 +41,26 @@ def test_plan_route(house, graph):
     assert all(house.occupancy_grid[tuple(point)] == 0 for point in points)
     assert costs[-1] == pytest.approx(move_cost + plotting.PICK_PLACE_COST, abs=1)
     assert [location for _, location, _ in steps] == ['fridge_2', 'fridge_2', 'base']
+    # Pick holds the robot still at the fridge for its cost
+    assert np.all(np.diff(costs) > 0)
 
 
 def test_save_plan_plot(house, graph, tmp_path):
     path = tmp_path / 'plan.png'
     plotting.save_plan_plot(house, graph, ACTIONS, [('apple_3', 'base')], 40, str(path))
+    assert path.stat().st_size > 0
+
+
+def test_save_plan_plot_over_top_down_view(house, graph, tmp_path):
+    # A white sky with the house drawn in its middle, reaching past the grid
+    house.top_down_image = np.full((40, 40, 3), 255, dtype=np.uint8)
+    house.top_down_image[5:35, 5:35] = 120
+    house.top_down_extent = (-5.5, 14.5, 14.5, -5.5)
+    figure = plotting.render_plan(house, graph, ACTIONS, [('apple_3', 'base')], 40)
+    map_ax = figure.axes[0]
+    # Framed on the house in the view, not on its sky
+    assert map_ax.get_xlim() == pytest.approx((-3, 12))
+    assert map_ax.get_ylim() == pytest.approx((12, -3))
+    path = tmp_path / 'plan.png'
+    figure.savefig(path)
     assert path.stat().st_size > 0
