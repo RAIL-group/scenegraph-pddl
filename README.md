@@ -15,9 +15,9 @@
 
 #### Example: put an apple in the fridge
 
-In ProcTHOR house 3, the robot starts at `base`, walks to the kitchen countertop for the apple, carries it to the fridge and returns. Left: the house from above. Middle: the occupancy grid with the robot's route, shaded light to dark by the plan cost spent so far. Right: the plan.
+In ProcTHOR house 3, the robot starts at `base`, walks to the kitchen countertop for the apple, carries it to the fridge and returns. The route is drawn over the house seen from above, light to dark red by the plan cost spent so far; everywhere the robot cannot stand is darkened. Right: the plan's actions placed by the cost at which each starts, and the goal.
 
-<img src="assets/plan-seed-3.png" width="900" alt="ProcTHOR house 3 from above, beside its occupancy grid with the robot's route from base to the countertop, then to the fridge and back to base, shaded by cost, and the five plan actions.">
+<img src="assets/plan-seed-3.png" width="900" alt="ProcTHOR house 3 from above with the robot's route from base to the countertop, then to the fridge and back to base, shaded by cost, beside a cost scale with the five plan actions and the goal.">
 
 ```bash
 make pipeline SEED=3 GOALS="--goal apple fridge"
@@ -165,9 +165,10 @@ The domain, [`pddl/domain.pddl`](./src/scenegraph_pddl/pddl/domain.pddl):
 - `ensure_installed()` clones `aibasel/downward` at `release-24.06.1` into `./third_party/fast-downward` and runs its `build.py`, unless it's already built.
 - `solve(domain, problem, planner=...)` runs `fast-downward.py` and returns the plan as a list of action tuples plus its total cost, or `(None, None)` if there is no plan.
 
-[`plotting.py`](./src/scenegraph_pddl/plotting.py) draws `plan.png`, in the style of [`railroad`](https://github.com/RAIL-group/railroad)'s ProcTHOR plots:
+[`plotting.py`](./src/scenegraph_pddl/plotting.py) draws `plan.png`, following the conventions of [`railroad`](https://github.com/RAIL-group/railroad)'s ProcTHOR plots:
 - `house.render_top_down()` renders an orthographic top-down view while the simulator is still running, framed in grid coordinates so it lines up with the occupancy grid.
-- `plan_route(house, graph, actions)` replays the plan: each move follows the same shortest path its `MotionCost` was measured on, and pick and place add their cost of 10.
+- `plan_route(house, graph, actions)` replays the plan: each move follows the same shortest path its `MotionCost` was measured on, and pick and place hold the robot still for their cost of 10.
+- The route is drawn as a tapering trail with a white outline over the top-down view, with occupied cells darkened rather than drawing the grid itself. The axes are in metres. The sidebar places each action against a cost scale and lists the goal.
 
 ## Architecture
 

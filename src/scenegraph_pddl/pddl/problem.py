@@ -110,11 +110,15 @@ def build_problem(graph, goals, motion_costs, problem_name='pick-place'):
         init += [f'(Motion {start} {goal})', f'(= (MotionCost {start} {goal}) {cost})']
     init.append('(= (total-cost) 0)')
 
-    goal = [f'(At {ROBOT} {BASE})'] + [f'(HandEmpty {ROBOT} {hand})' for hand in HANDS]
-    goal += [f'(In {obj} {container})' for obj, container in goals]
-
     objects = [ROBOT, *HANDS, BASE, *containers, *locations]
-    return _format_problem('procthor', problem_name, objects, init, goal)
+    return _format_problem('procthor', problem_name, objects, init, goal_facts(goals))
+
+
+def goal_facts(goals):
+    """Goal facts for resolved (object, container) goals: each object in its
+    container, and the robot back at base with empty hands."""
+    facts = [f'(At {ROBOT} {BASE})'] + [f'(HandEmpty {ROBOT} {hand})' for hand in HANDS]
+    return facts + [f'(In {obj} {container})' for obj, container in goals]
 
 
 def _resolve_name(graph, name, named_nodes, kind):
